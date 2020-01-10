@@ -1,0 +1,42 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: configuration-repository-app
+  annotations:
+    configuration-repository-app/config-repository: "https://gitlab.com/pentatonix/kubernetes-example.git"
+    configuration-repository-app/config-path: "configuration-server/config"
+spec:
+  initContainers:
+    - name: config-repo-app
+      image: alpine/git
+      env:
+        - name: CONFIG_REPOSITORY
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.annotations['configuration-repository-app/config-repository']
+        - name: CONFIG_PATH
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.annotations['configuration-repository-app/config-path']
+      command: ['/bin/sh', '-c']
+      args: ['git clone $CONFIG_REPOSITORY . && mv -f ./$CONFIG_PATH/application.yaml /config/application.yaml']
+      volumeMounts:
+        - name: config
+          mountPath: /config
+  containers:
+    - name: configuration-repository-app
+      image: zinevych/config-repo-app:0.1
+      ports:
+        - containerPort: 8080
+      readinessProbe:
+        httpGet:
+          path: /actuator/health
+          port: 8080
+        initialDelaySeconds: 3
+      volumeMounts:
+        - name: config
+          mountPath: /application.yaml
+          subPath: application.yaml
+  volumes:
+    - name: config
+      emptyDir: {}

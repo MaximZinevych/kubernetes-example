@@ -1,0 +1,3 @@
+configuration-repository-app:
+    config:
+        version: 0.1
